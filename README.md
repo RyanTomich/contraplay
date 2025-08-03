@@ -24,7 +24,7 @@ create a .env with the following
 ```text
 export SPOTIFY_CLIENT_ID="xxxxxx"
 export SPOTIFY_CLIENT_SECRET="xxxxxx"
-export GENIUS_ACCESS_TOKEN="REMOVED"
+export GENIUS_ACCESS_TOKEN="xxxxxx"
 ```
 ⚠️ Note: Never share or commit your API tokens publicly.cat
 
