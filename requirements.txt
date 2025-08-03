@@ -1,0 +1,7 @@
+matplotlib
+numpy
+spotipy
+python-dotenv
+matplotlib-venn
+wordcloud
+lyricsgenius

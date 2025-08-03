@@ -27,9 +27,6 @@ forbidden_words = {'remastered', 'remaster', 'chorus', 'verse', '',
     "just","very","literally","actually","basically","kinda","sorta", 'la'
 }
 
-def similar(a: str, b: str, threshold: float = 0.8) -> bool:
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio() >= threshold
-
 @dataclass(frozen=True, slots=True)
 class Song:
     title: str
@@ -52,7 +49,11 @@ class Song:
         return f"{self.title[:40]:<40} | {self.artist[:20]:<20} | {self.album[:25]:<25} | {self.duration:>5}s"
 
     def __eq__(self, that):
-        return similar(self.title, that.title)
+        """Returns true if songs are effectively equal. Intentionally week to account for title variants of the same song.
+        """
+        a = self.title.lower()
+        b = that.title.lower()
+        return SequenceMatcher(None, a.lower(), b.lower()).ratio() >= 0.8
 
         # title_match = self.title == that.title
         # artist_match = self.artist == that.artist
@@ -146,8 +147,8 @@ def parse_filepath(file_path:str) -> Playlist:
             songs.append(Song.create(title, artist, album, duration))
     return Playlist(songs)
 
-def parse_spotify_url(playlist_url:str) -> Playlist:
-    assert 'https' in playlist_url
+def parse_spotify_url(playlist_url:str, tag='') -> Playlist:
+    assert 'https://open.spotify.com/playlist' in playlist_url, f'{playlist_url} is not a spotify playlist link'
     sp = spotipy.Spotify(
         auth_manager=SpotifyClientCredentials(
             client_id=os.getenv("SPOTIFY_CLIENT_ID"),
@@ -179,9 +180,9 @@ def parse_spotify_url(playlist_url:str) -> Playlist:
         if offset >= page["total"]:
             break
 
-    return Playlist(songs)
+    return Playlist(songs, tag=tag)
 
-def playlist_intersection(playlist_1, playlist_2):
+def playlist_intersection(playlist_1: Playlist, playlist_2: Playlist) -> Playlist:
     song_intersection = []
     for s1 in playlist_1:
         for s2 in playlist_2:
@@ -191,7 +192,7 @@ def playlist_intersection(playlist_1, playlist_2):
     return Playlist(song_intersection, tag='intersect')
 
 
-def visualize_intersection_venn(len_s1, len_s2, len_intersection):
+def visualize_intersection_venn(len_s1:int, len_s2:int, len_intersection:int) -> None:
     only_s1 = len_s1 - len_intersection
     only_s2 = len_s2 - len_intersection
     venn2(subsets=(only_s1, only_s2, len_intersection), set_labels=('ryan', 'rachel'))
@@ -199,12 +200,12 @@ def visualize_intersection_venn(len_s1, len_s2, len_intersection):
     plt.savefig("playlist_intersection_venn.png", dpi=300)
     plt.savefig('intersect.png', dpi=300)
 
-_filename_rx = re.compile(r"[^-\w\s]")
 def _sanitize(text: str) -> str:
     """Make an OS-safe, case-insensitive slug."""
+    _filename_rx = re.compile(r"[^-\w\s]")
     return _filename_rx.sub("", text).strip().replace(" ", "_").lower()
 
-def get_lyrics(song: Song, genius) -> str:
+def get_lyrics(song: Song, genius: lyricsgenius) -> str:
     folder = Path("lyrics_cache")
     folder.mkdir(exist_ok=True)
     fname = f"{_sanitize(song.artist)}-{_sanitize(song.title)}.txt"
@@ -223,7 +224,7 @@ def get_lyrics(song: Song, genius) -> str:
         print(f"Error fetching lyrics for {song}: {e}")
     return ""
 
-def wordCloud(playlist: Playlist) -> None:
+def wordCloud(playlist: Playlist, genius:lyricsgenius) -> None:
     text = ''
     for i in playlist:
         lyrics = get_lyrics(i, genius)
@@ -239,19 +240,18 @@ def wordCloud(playlist: Playlist) -> None:
     plt.figure(figsize=(10, 5))
     plt.imshow(wc, interpolation='bilinear')
     plt.axis('off')
-    plt.savefig(f'{playlist.tag}wordCloud.png', dpi=300)
+    plt.savefig(f'{playlist.tag}_wordCloud.png', dpi=300)
 
 if __name__ == "__main__":
     pass
     load_dotenv()
-    genius = lyricsgenius.Genius(os.getenv("GENIUS_ACCESS_TOKEN"))
 
     classics_playlist_url = 'https://open.spotify.com/playlist/0mxwuRxFnP7cedz2iWtdgE?si=98bdcca0d5cb4357'
     ryan_playlist = parse_spotify_url(classics_playlist_url, tag='Ryan')
 
-    ryan_playlist.artist_frequency_dist()
-    ryan_playlist.artist_frequency_dist(freq=True)
-    ryan_playlist.duration_box()
+    # ryan_playlist.artist_frequency_dist()
+    # ryan_playlist.artist_frequency_dist(freq=True)
+    # ryan_playlist.duration_box()
 
-    intersect = playlist_intersection(ryan_playlist, ryan_playlist)
-    wordCloud(intersect)
+    genius = lyricsgenius.Genius(os.getenv("GENIUS_ACCESS_TOKEN"))
+    wordCloud(ryan_playlist, genius)
