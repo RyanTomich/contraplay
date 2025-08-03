@@ -22,9 +22,9 @@ pip install -r requirements.txt
 ### setup .env
 create a .env with the following
 ```text
-export SPOTIFY_CLIENT_ID="***REMOVED***"
-export SPOTIFY_CLIENT_SECRET="***REMOVED***"
-export GENIUS_ACCESS_TOKEN="***REMOVED***"
+export SPOTIFY_CLIENT_ID="xxxxxx"
+export SPOTIFY_CLIENT_SECRET="xxxxxx"
+export GENIUS_ACCESS_TOKEN="REMOVED"
 ```
 ⚠️ Note: Never share or commit your API tokens publicly.cat
 
